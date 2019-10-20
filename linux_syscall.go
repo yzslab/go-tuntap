@@ -2,7 +2,7 @@ package go_tuntap
 
 /*
 #cgo CFLAGS: -I${SRCDIR}/libs
-#cgo LDFLAGS: -static -L${SRCDIR}/libs -ltuntap4go
+#cgo LDFLAGS: -L${SRCDIR}/libs -l:libtuntap4go.a
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
