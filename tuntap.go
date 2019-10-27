@@ -1,5 +1,7 @@
 package go_tuntap
 
+import "io"
+
 type VirtualNetworkInterfaceMode uint8
 const (
 	TUN VirtualNetworkInterfaceMode = iota
@@ -12,7 +14,7 @@ const (
 	DOWN
 )
 
-type VirtualNetworkInterfaceMTU int32
+type VirtualNetworkInterfaceMTU uint16
 
 type VirtualNetworkInterface interface {
 	GetMode() VirtualNetworkInterfaceMode
@@ -22,12 +24,14 @@ type VirtualNetworkInterface interface {
 	SetMTU(VirtualNetworkInterfaceMTU) error
 	GetMTU() VirtualNetworkInterfaceMTU
 
-	SetAddress(string) error
+	SetAddress(string, string) error
+	SetBinaryAddress(uint32, uint32) error
 
-	Close()
+	io.ReadWriteCloser
 }
 
 type VirtualNetworkTUN interface {
 	VirtualNetworkInterface
 	SetDestinationAddress(address string) error
+	SetBinaryDestinationAddress(uint32) error
 }

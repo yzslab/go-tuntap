@@ -2,6 +2,8 @@ package go_tuntap
 
 import "C"
 import (
+	"io"
+	"os"
 	"syscall"
 )
 
@@ -13,8 +15,8 @@ type LinuxVirtualNetworkInterface struct {
 
 	fd int
 	mtu VirtualNetworkInterfaceMTU
+	io.ReadWriteCloser
 }
-
 
 func NewLinuxVirtualNetworkInterface(mode VirtualNetworkInterfaceMode, name string, persistent bool) (*LinuxVirtualNetworkInterface, error) {
 	var fd int
@@ -45,6 +47,7 @@ func NewLinuxVirtualNetworkInterface(mode VirtualNetworkInterfaceMode, name stri
 
 		fd: fd,
 		mtu: 1500,
+		ReadWriteCloser: os.NewFile(uintptr(fd), name),
 	}
 
 	if vni.GetMode() == TUN {
@@ -53,52 +56,54 @@ func NewLinuxVirtualNetworkInterface(mode VirtualNetworkInterfaceMode, name stri
 			vni.Close()
 			return nil, err
 		}
+	} else {
+		err = vni.SetFlags(syscall.IFF_UP)
 	}
 
 	return vni, nil
 }
 
-func (l LinuxVirtualNetworkInterface) GetMode() VirtualNetworkInterfaceMode {
+func (l *LinuxVirtualNetworkInterface) GetMode() VirtualNetworkInterfaceMode {
 	return l.mode
 }
 
-func (l LinuxVirtualNetworkInterface) GetName() string {
+func (l *LinuxVirtualNetworkInterface) GetName() string {
 	return l.name
 }
 
-func (l LinuxVirtualNetworkInterface) IsPersistent() bool {
+func (l *LinuxVirtualNetworkInterface) IsPersistent() bool {
 	return l.persistent
 }
 
-func (l LinuxVirtualNetworkInterface) SetFlags(flags int) error {
+func (l *LinuxVirtualNetworkInterface) SetFlags(flags int) error {
 	return setFlags(l.cStringName, flags)
 }
 
-func (l LinuxVirtualNetworkInterface) SetMTU(mtu VirtualNetworkInterfaceMTU) error {
+func (l *LinuxVirtualNetworkInterface) SetMTU(mtu VirtualNetworkInterfaceMTU) error {
 	if err := setMTU(l.cStringName, int(mtu)); err != nil {
 		l.mtu = mtu
 	}
 	return nil
 }
 
-func (l LinuxVirtualNetworkInterface) GetMTU() VirtualNetworkInterfaceMTU {
+func (l *LinuxVirtualNetworkInterface) GetMTU() VirtualNetworkInterfaceMTU {
 	return l.mtu
 }
 
-func (l LinuxVirtualNetworkInterface) SetAddress(address string) error {
-	return setAddress(l.cStringName, address)
+func (l *LinuxVirtualNetworkInterface) SetAddress(address string, netmask string) error {
+	return setAddress(l.cStringName, address, netmask)
 }
 
-func (l LinuxVirtualNetworkInterface) SetDestinationAddress(address string) error {
+func (l *LinuxVirtualNetworkInterface) SetBinaryAddress(address uint32, netmask uint32) error {
+	return setUInt32Address(l.cStringName, address, netmask)
+}
+
+func (l *LinuxVirtualNetworkInterface) SetDestinationAddress(address string) error {
 	return setTunDestinationAddress(l.cStringName, address)
 }
 
-func (l LinuxVirtualNetworkInterface) Close()  {
-	if l.fd >= 0 {
-		_ = syscall.Close(l.fd)
-		freeCString(l.cStringName)
-	}
-	l.fd = -1
+func (l *LinuxVirtualNetworkInterface) SetBinaryDestinationAddress(address uint32) error {
+	return setTunUInt32DestinationAddress(l.cStringName, address)
 }
 
 func createTun(name string) (fd int, err error)  {
@@ -111,6 +116,6 @@ func createTap(name string) (fd int, err error) {
 	return
 }
 
-func (l LinuxVirtualNetworkInterface) tunInit() error {
+func (l *LinuxVirtualNetworkInterface) tunInit() error {
 	return tunInit(l.cStringName)
 }

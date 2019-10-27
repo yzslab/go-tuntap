@@ -68,11 +68,20 @@ func setMTU(nameCString *C.char, mtu int) error {
 	return nil
 }
 
-func setAddress(nameCString *C.char, address string) error {
+func setAddress(nameCString *C.char, address string, netmask string) error {
 	addressCString := goString2CString(address);
+	netmaskCString := goString2CString(netmask);
 	defer freeCString(addressCString)
-	if ret := C.set_vni_address_by_ascii(nameCString, addressCString); ret < 0 {
+	defer freeCString(netmaskCString)
+	if ret := C.set_vni_address_by_ascii(nameCString, addressCString, netmaskCString); ret < 0 {
 		return fmt.Errorf("set_vni_address_by_ascii(): %s", getErrorString())
+	}
+	return nil
+}
+
+func setUInt32Address(nameCString *C.char, address uint32, netmask uint32) error {
+	if ret := C.set_vni_address(nameCString, C.uint32_t(address), C.uint32_t(netmask)); ret < 0 {
+		return fmt.Errorf("set_vni_address(): %s", getErrorString())
 	}
 	return nil
 }
@@ -84,6 +93,21 @@ func setTunDestinationAddress(nameCString *C.char, address string) error {
 		return fmt.Errorf("set_tun_destination_address_by_ascii(): %s", getErrorString())
 	}
 	return nil
+}
+
+func setTunUInt32DestinationAddress(nameCString *C.char, address uint32) error {
+	if ret := C.set_tun_destination_address(nameCString, C.uint32_t(address)); ret < 0 {
+		return fmt.Errorf("set_tun_destination_address(): %s", getErrorString())
+	}
+	return nil
+}
+
+func Htonl(hostlong uint32) uint32 {
+	return uint32(C.htonl(C.uint32_t(hostlong)))
+}
+
+func Ntohl(netlong uint32) uint32 {
+	return uint32(C.ntohl(C.uint32_t(netlong)))
 }
 
 func goString2CString(goString string) *C.char {
