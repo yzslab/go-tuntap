@@ -3,7 +3,6 @@ package go_tuntap
 import "C"
 import (
 	"io"
-	"os"
 	"syscall"
 )
 
@@ -15,7 +14,6 @@ type LinuxVirtualNetworkInterface struct {
 
 	fd int
 	mtu VirtualNetworkInterfaceMTU
-	io.ReadWriteCloser
 }
 
 func NewLinuxVirtualNetworkInterface(mode VirtualNetworkInterfaceMode, name string, persistent bool) (*LinuxVirtualNetworkInterface, error) {
@@ -47,7 +45,6 @@ func NewLinuxVirtualNetworkInterface(mode VirtualNetworkInterfaceMode, name stri
 
 		fd: fd,
 		mtu: 1500,
-		ReadWriteCloser: os.NewFile(uintptr(fd), name),
 	}
 
 	if vni.GetMode() == TUN {
@@ -104,6 +101,40 @@ func (l *LinuxVirtualNetworkInterface) SetDestinationAddress(address string) err
 
 func (l *LinuxVirtualNetworkInterface) SetBinaryDestinationAddress(address uint32) error {
 	return setTunUInt32DestinationAddress(l.cStringName, address)
+}
+
+func (l *LinuxVirtualNetworkInterface) Read(p []byte) (n int, err error) {
+	if len(p) > 0 {
+		n, err = syscall.Read(l.fd, p)
+		if n == 0 && err == nil {
+			return n, io.EOF
+		}
+		if err != nil {
+			return 0, err
+		}
+	}
+	return
+}
+
+func (l *LinuxVirtualNetworkInterface) Write(p []byte) (n int, err error) {
+	if len(p) > 0 {
+		n, err = syscall.Write(l.fd, p)
+		if n == 0 && err == nil {
+			return n, io.EOF
+		}
+		if err != nil {
+			return 0, err
+		}
+	}
+	return
+}
+
+func (l *LinuxVirtualNetworkInterface) Close() error {
+	if l.fd >= 0 {
+		_= syscall.Close(l.fd)
+		l.fd = -1
+	}
+	return nil
 }
 
 func createTun(name string) (fd int, err error)  {
