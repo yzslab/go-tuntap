@@ -2,10 +2,14 @@ package go_tuntap
 
 import (
 	"goipam"
+	"log"
 	"testing"
+	"time"
 )
 
 func TestLinuxVirtualNetworkInterface(t *testing.T) {
+	log.SetFlags(log.LstdFlags | log.Lshortfile)
+
 	var vni VirtualNetworkInterface
 	var err error
 	vni, err = NewLinuxVirtualNetworkInterface(TAP, "test_tun0", false)
@@ -33,8 +37,21 @@ func TestLinuxVirtualNetworkInterface(t *testing.T) {
 		t.Errorf("%s", "ntohl or htonl have bug(s)")
 	}
 
-	vni.Close()
+	go func() {
+		for {
+			buffer := make([]byte, 1522)
+			_, err := vni.Read(buffer)
+			if err != nil {
+				log.Println(err)
+				break
+			}
+		}
+		log.Println("read goroutine end")
+	}()
 
+	time.Sleep(3 * time.Second)
+
+	vni.Close()
 
 	vni, err = NewLinuxVirtualNetworkInterface(TAP, "test_tap0", false)
 	if err != nil {

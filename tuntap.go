@@ -3,12 +3,14 @@ package go_tuntap
 import "io"
 
 type VirtualNetworkInterfaceMode uint8
+
 const (
 	TUN VirtualNetworkInterfaceMode = iota
 	TAP
 )
 
 type VirtualNetworkInterfaceState uint8
+
 const (
 	UP VirtualNetworkInterfaceState = iota
 	DOWN
