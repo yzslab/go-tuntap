@@ -1,6 +1,7 @@
 package go_tuntap
 
 /*
+#include <sys/epoll.h>
 #include <sys/eventfd.h>
 */
 import "C"
@@ -202,8 +203,7 @@ func (l *LinuxVirtualNetworkInterface) epollInit() error {
 	var eventFD int
 
 	// add vni fd to epoll
-	epollet := syscall.EPOLLET
-	event1.Events = uint32(syscall.EPOLLIN) | uint32(epollet)
+	event1.Events = uint32(syscall.EPOLLIN) | uint32(C.EPOLLET)
 	event1.Fd = int32(l.fd)
 	err = syscall.EpollCtl(l.epfd, syscall.EPOLL_CTL_ADD, l.fd, &event1)
 	if err != nil {
